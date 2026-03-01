@@ -1,137 +1,74 @@
-# 🔍 CodeSense — Python Code Quality Analyzer
+# codesense
 
-A lightweight command-line tool that analyzes Python source files and reports
-quality issues, style violations, and best-practice warnings — with a final
-quality score out of 100.
+Static analysis tool for Python files. Checks for common style issues, bad practices, and things that will come back to bite you later.
 
----
+Built this because I kept making the same mistakes (unused imports, magic numbers, bare excepts) and wanted something lightweight I could run from the terminal without pulling in a million dependencies.
 
-## ✨ Features
+## install
 
-- **Style checks** — line length (PEP 8 compliant)
-- **Naming conventions** — enforces snake_case for functions, PascalCase for classes
-- **Documentation checks** — flags missing docstrings
-- **Best practices** — detects bare `except`, magic numbers, unused imports
-- **Maintenance flags** — surfaces TODO / FIXME / HACK comments
-- **Quality score** — a single 0–100 score summarizing the file's health
-- **Multiple output formats** — human-readable text or JSON
-
----
-
-## 📦 Installation
-
-No external dependencies required — pure Python standard library.
+No dependencies needed, just Python 3.8+.
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/codesense.git
+git clone https://github.com/dmatiason09/codesense.git
 cd codesense
-python main.py --help
 ```
 
-> Python 3.8 or higher is required.
-
----
-
-## 🚀 Usage
+## usage
 
 ```bash
-# Analyze a file (full report)
-python main.py examples/bad_code.py
-
-# Show only the score
-python main.py examples/good_code.py --score-only
-
-# Output as JSON (great for piping into other tools)
-python main.py examples/bad_code.py --output json
+python main.py yourfile.py          # full report
+python main.py yourfile.py --score  # just the score
+python main.py yourfile.py --json   # json output
 ```
 
----
+## what it checks
 
-## 📊 Example Output
+- lines over 79 chars (pep8)
+- function/class naming (snake_case / PascalCase)
+- missing docstrings
+- bare `except:` clauses
+- unused imports
+- TODO/FIXME comments left in code
+- magic numbers without names
+
+## example
 
 ```
-============================================================
-  CodeSense — Code Quality Report
-============================================================
-  File   : examples/bad_code.py
-  Lines  : 28 total  (22 code, 3 comments, 3 blank)
-  Functions : 3   Classes : 1   Comment ratio : 10.7%
+codesense → examples/bad_code.py
+  37 lines  (31 code / 1 comments / 5 blank)
+  5 functions, 1 classes
 
-  Issues Found (14)
-  --------------------------------------------------------
+  issues (20)
 
-  [WARNING] (6)
-  • [style] Line too long (80 chars, max 79)  → line 32
-  • [naming] Function 'CalculateDiscount' should use snake_case  → line 4
-  • [naming] Function 'processData' should use snake_case  → line 21
-  • [naming] Class 'account_manager' should use PascalCase  → line 9
-  • [best_practice] Bare 'except:' found  → line 19
-  • [unused] Import 're' appears to be unused  → line 3
-
-  [INFO] (8)
-  • [documentation] 'withdraw' is missing a docstring  → line 14
-  • [maintenance] Unresolved comment: # TODO: fix this logic
+  WARNING × 9
+  • [naming] 'CalculateDiscount' - functions should be snake_case  (line 5)
+  • [bad_practice] bare except catches everything  (line 24)
+  • [unused] 'os' imported but never used  (line 1)
   ...
 
-  Quality Score : 48/100  —  Poor ✗
-============================================================
+  score: 44/100 — poor
 ```
 
----
-
-## 🗂️ Project Structure
+## project structure
 
 ```
 codesense/
-├── main.py               # CLI entry point
-├── requirements.txt      # Dependencies (none required)
+├── main.py
 ├── analyzer/
-│   ├── __init__.py
-│   ├── code_analyzer.py  # Core analysis logic (AST-based)
-│   └── report.py         # Report formatting (text & JSON)
+│   ├── code_analyzer.py   # all the checks live here
+│   └── report.py          # terminal output formatting
 └── examples/
-    ├── good_code.py      # Clean code demo
-    └── bad_code.py       # Problematic code demo
+    ├── good_code.py
+    └── bad_code.py
 ```
 
----
+## notes
 
-## 🧠 How It Works
+- doesn't execute your code, all static analysis via the `ast` module
+- false positives happen with magic numbers, use your judgment
+- TODO: add support for checking multiple files at once
+- TODO: maybe add a --fix flag someday that auto-corrects simple stuff
 
-CodeSense uses Python's built-in `ast` (Abstract Syntax Tree) module to parse
-and inspect source files without executing them. This allows safe, fast, and
-accurate static analysis of:
+## license
 
-- Function and class definitions
-- Import statements
-- Exception handlers
-- Numeric literals
-- And more
-
----
-
-## 🔧 Checks Performed
-
-| Check | Severity | Description |
-|---|---|---|
-| Line length | Warning | Lines over 79 characters (PEP 8) |
-| Function naming | Warning | Non-snake_case function names |
-| Class naming | Warning | Non-PascalCase class names |
-| Missing docstrings | Info | Functions/classes without docstrings |
-| Bare except | Warning | `except:` without a specific exception type |
-| Unused imports | Warning | Imported modules not referenced in code |
-| TODO comments | Info | Unresolved TODO/FIXME/HACK markers |
-| Magic numbers | Info | Unexplained numeric literals in code |
-
----
-
-## 🤝 Contributing
-
-Pull requests are welcome! For major changes, please open an issue first to
-discuss what you would like to change.
-
----
-
-## 📄 License
-
-[MIT](https://choosealicense.com/licenses/mit/)
+MIT

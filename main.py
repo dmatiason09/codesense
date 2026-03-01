@@ -1,56 +1,32 @@
 #!/usr/bin/env python3
-"""
-CodeSense - Python Code Quality Analyzer
-Author: Your Name
-Description: Analyzes Python code files for quality, style, and common issues.
-"""
+# codesense - quick python code checker i built to stop making the same mistakes
+# started this after getting roasted in a code review lol
 
 import argparse
 import sys
-from analyzer.code_analyzer import CodeAnalyzer
-from analyzer.report import generate_report
+from analyzer.code_analyzer import run_analysis
+from analyzer.report import show_report
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="CodeSense: Analyze the quality of Python code files.",
-        formatter_class=argparse.RawTextHelpFormatter
-    )
-    parser.add_argument(
-        "file",
-        nargs="?",
-        help="Path to the Python file to analyze"
-    )
-    parser.add_argument(
-        "--score-only",
-        action="store_true",
-        help="Show only the final quality score"
-    )
-    parser.add_argument(
-        "--output",
-        choices=["text", "json"],
-        default="text",
-        help="Output format: text (default) or json"
-    )
+    parser = argparse.ArgumentParser(description="codesense: check your python files before you commit")
+    parser.add_argument("file", nargs="?", help="python file to check")
+    parser.add_argument("--score", action="store_true", help="just show the score, nothing else")
+    parser.add_argument("--json", action="store_true", help="output as json (useful for piping)")
 
     args = parser.parse_args()
 
     if not args.file:
-        parser.print_help()
-        print("\nExample usage:")
-        print("  python main.py examples/good_code.py")
-        print("  python main.py examples/bad_code.py --output json")
+        print("usage: python main.py <file.py>")
+        print("  python main.py mycode.py")
+        print("  python main.py mycode.py --score")
         sys.exit(0)
 
     try:
-        analyzer = CodeAnalyzer(args.file)
-        results = analyzer.analyze()
-        generate_report(results, score_only=args.score_only, output_format=args.output)
+        results = run_analysis(args.file)
+        show_report(results, score_only=args.score, as_json=args.json)
     except FileNotFoundError:
-        print(f"Error: File '{args.file}' not found.")
-        sys.exit(1)
-    except Exception as e:
-        print(f"Unexpected error: {e}")
+        print(f"can't find '{args.file}', double check the path")
         sys.exit(1)
 
 

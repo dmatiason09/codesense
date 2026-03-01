@@ -1,5 +1,0 @@
-# CodeSense has no external dependencies — uses only Python stdlib!
-# Python 3.8+ required
-
-# Optional: for development/testing
-# pytest>=7.0
