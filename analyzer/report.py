@@ -30,7 +30,6 @@ def show_report(results, score_only=False, as_json=False):
         if not issues:
             print(f"  {GREEN}clean! no issues found{RESET}")
         else:
-            # group by severity
             for sev in ["error", "warning", "info"]:
                 group = [x for x in issues if x["severity"] == sev]
                 if not group:
@@ -41,14 +40,33 @@ def show_report(results, score_only=False, as_json=False):
                     ln = f"  (line {issue['line']})" if issue.get("line") else ""
                     print(f"  {c}•{RESET} [{issue['type']}] {issue['message']}{BOLD}{ln}{RESET}")
 
-    # score label
-    if score >= 90:
-        label = f"{GREEN}excellent{RESET}"
-    elif score >= 75:
-        label = f"{GREEN}good{RESET}"
-    elif score >= 50:
-        label = f"{YELLOW}needs work{RESET}"
-    else:
-        label = f"{RED}poor{RESET}"
+    print(f"\n  score: {BOLD}{score}/100{RESET} — {_score_label(score)}\n")
 
-    print(f"\n  score: {BOLD}{score}/100{RESET} — {label}\n")
+
+def show_summary(all_results):
+    """print an overall summary when analyzing multiple files"""
+    total_issues = sum(len(r["issues"]) for r in all_results)
+    total_files = len(all_results)
+    avg_score = sum(r["score"] for r in all_results) // total_files
+
+    worst = min(all_results, key=lambda r: r["score"])
+    best = max(all_results, key=lambda r: r["score"])
+
+    print(f"\n{BOLD}{'─' * 50}{RESET}")
+    print(f"{BOLD}summary — {total_files} files checked{RESET}")
+    print(f"  total issues : {total_issues}")
+    print(f"  average score: {BOLD}{avg_score}/100{RESET} — {_score_label(avg_score)}")
+    print(f"  best file    : {GREEN}{best['file']}{RESET} ({best['score']}/100)")
+    print(f"  worst file   : {RED}{worst['file']}{RESET} ({worst['score']}/100)")
+    print(f"{BOLD}{'─' * 50}{RESET}\n")
+
+
+def _score_label(score):
+    if score >= 90:
+        return f"{GREEN}excellent{RESET}"
+    elif score >= 75:
+        return f"{GREEN}good{RESET}"
+    elif score >= 50:
+        return f"{YELLOW}needs work{RESET}"
+    else:
+        return f"{RED}poor{RESET}"
