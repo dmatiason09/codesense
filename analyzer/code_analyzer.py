@@ -21,6 +21,8 @@ def run_analysis(filepath):
     issues += _unused_imports(src)
     issues += _todos(lines)
     issues += _magic_numbers(src)
+    issues += _long_functions(src)
+    issues += _short_varnames(src)
 
     metrics = _get_metrics(src, lines)
     score = _score(issues)
@@ -51,13 +53,11 @@ def _naming(src):
     try:
         tree = ast.parse(src)
     except SyntaxError as e:
-        # if we can't parse it there's bigger problems
         return [{"type": "syntax", "severity": "error", "line": 1, "message": str(e)}]
 
     for node in ast.walk(tree):
         if isinstance(node, ast.FunctionDef):
             name = node.name
-            # skip dunder methods like __init__, __str__ etc
             if name.startswith("__"):
                 continue
             if not re.match(r'^[a-z_][a-z0-9_]*$', name):
@@ -81,7 +81,6 @@ def _naming(src):
 
 
 def _missing_docs(src):
-    # only checks functions and classes, not every little thing
     issues = []
     try:
         tree = ast.parse(src)
@@ -120,7 +119,6 @@ def _bare_excepts(src):
                 "type": "bad_practice",
                 "severity": "warning",
                 "line": node.lineno,
-                # bare except swallows KeyboardInterrupt and SystemExit which is bad
                 "message": "bare except catches everything including keyboard interrupts - be specific"
             })
     return issues
@@ -163,7 +161,6 @@ def _unused_imports(src):
 
 
 def _todos(lines):
-    # track leftover notes so they don't get forgotten
     issues = []
     pattern = re.compile(r'#\s*(TODO|FIXME|HACK|XXX)', re.IGNORECASE)
     for i, line in enumerate(lines, 1):
@@ -184,7 +181,7 @@ def _magic_numbers(src):
     except SyntaxError:
         return []
 
-    ok_numbers = {0, 1, -1, 2, 100}  # these are fine as-is
+    ok_numbers = {0, 1, -1, 2, 100}
 
     for node in ast.walk(tree):
         if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
@@ -195,6 +192,68 @@ def _magic_numbers(src):
                     "line": getattr(node, 'lineno', 0),
                     "message": f"magic number {node.value} - give it a name so it's clear what it means"
                 })
+    return issues
+
+
+def _long_functions(src, max_lines=30):
+    """flag functions that are doing too much - usually a sign they need splitting up"""
+    issues = []
+    try:
+        tree = ast.parse(src)
+    except SyntaxError:
+        return []
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef):
+            # end_lineno is available in python 3.8+
+            end = getattr(node, 'end_lineno', None)
+            if end is None:
+                continue
+            length = end - node.lineno
+            if length > max_lines:
+                issues.append({
+                    "type": "complexity",
+                    "severity": "warning",
+                    "line": node.lineno,
+                    "message": f"'{node.name}' is {length} lines long - consider breaking it up (max ~{max_lines})"
+                })
+    return issues
+
+
+def _short_varnames(src):
+    """single-letter variable names outside of loops/comprehensions are usually a red flag"""
+    issues = []
+    try:
+        tree = ast.parse(src)
+    except SyntaxError:
+        return []
+
+    # collect line numbers inside for loops and comprehensions - single letters are fine there
+    loop_lines = set()
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.For, ast.ListComp, ast.DictComp, ast.SetComp, ast.GeneratorExp)):
+            end = getattr(node, 'end_lineno', None)
+            if end:
+                loop_lines.update(range(node.lineno, end + 1))
+
+    seen = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Assign):
+            continue
+        for target in node.targets:
+            if not isinstance(target, ast.Name):
+                continue
+            name = target.id
+            lineno = node.lineno
+            if len(name) == 1 and name != '_' and lineno not in loop_lines:
+                if (name, lineno) not in seen:
+                    seen.add((name, lineno))
+                    issues.append({
+                        "type": "naming",
+                        "severity": "info",
+                        "line": lineno,
+                        "message": f"'{name}' is a bit vague - a descriptive name would help readability"
+                    })
     return issues
 
 
